@@ -1,0 +1,15 @@
+# doc artifacts
+html/*
+
+# scratch file for testing linking
+scratch.cc
+*.o
+*.so*
+*.d
+
+# build artifacts
+.scratch/*
+include/gg/bison/*
+src/parser.cc
+src/lexer.cc
+/gg
