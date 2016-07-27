@@ -1,9 +1,10 @@
 #pragma once
 
 #include <experimental/optional>
+#include <memory>
 #include <sstream>
 #include <string>
-#include <memory>
+#include <type_traits>
 #include <vector>
 
 #include "gg/bison/location.h"
@@ -39,6 +40,80 @@ namespace gg {
                 @return   The output stream.
             */
             std::ostream &indent(std::ostream &s, std::size_t by);
+
+            /**
+               Standard formatting for location objects.
+
+               @param loc   The location to format.
+               @param s     The stream to format to.
+               @param depth The depth of the node to format.
+               @return s    The stream to format to.
+            */
+            std::ostream &format(const location &loc,
+                                 std::ostream &s,
+                                 std::size_t depth = 0);
+
+            namespace {
+                template<typename T>
+                struct format_struct {
+                    static inline std::ostream &f(const T &a,
+                                                  std::ostream &s,
+                                                  std::size_t depth) {
+                        return indent(s, depth) << a;
+                    }
+                };
+
+                template<typename T>
+                struct format_struct<std::shared_ptr<T>> {
+                    static std::enable_if_t<std::is_base_of<node, T>::value,
+                                            std::ostream&>
+                    inline f(const std::shared_ptr<T> &a,
+                             std::ostream &s,
+                             std::size_t depth) {
+                        return a->format(s, depth);
+                    }
+                };
+            }
+
+            template<typename T>
+            std::ostream &format(const T &a,
+                                 std::ostream &s,
+                                 std::size_t depth = 0) {
+                return format_struct<T>::f(a, s, depth);
+            }
+
+            namespace {
+                template<typename Arg>
+                std::ostream &format_all(std::ostream &s,
+                                         std::size_t depth,
+                                         Arg arg) {
+                    return pformat::format(arg, s << '\n', depth);
+                }
+
+                template<typename Arg, typename... Args>
+                std::ostream &format_all(std::ostream &s,
+                                         std::size_t depth,
+                                         Arg arg,
+                                         Args... args) {
+                    pformat::format(arg, s << '\n', depth);
+                    return format_all(s, depth, args...);
+                }
+            }
+
+            template<typename... Args>
+            std::ostream &format_with_args(const std::string &name,
+                                           std::ostream &s,
+                                           std::size_t depth,
+                                           const gg::location &loc,
+                                           Args... args) {
+                pformat::indent(s, depth) << '(' << name;
+
+                if (!sizeof...(Args)) {
+                    return pformat::format(loc, s << ')');
+                }
+
+                return format_all(s, depth + 1, loc, args...) << ')';
+            }
         }
 
         template<typename T>
@@ -55,9 +130,7 @@ namespace gg {
             virtual std::ostream &format(std::ostream &s,
                                          std::size_t depth = 0) {
                 pformat::indent(s, depth) << "(sequence";
-                if (elems.empty()) {
-                    return s << ')';
-                }
+                pformat::format(loc, s << '\n', depth + 1);
                 for (const auto &elem : elems) {
                     elem->format(s << '\n', depth + 1);
                 }
@@ -148,8 +221,13 @@ namespace gg {
 
             virtual std::ostream &format(std::ostream &s,
                                          std::size_t depth = 0) const {
-                return pformat::indent(s, depth)
-                    << "(literal: " << value << "#)";
+                std::stringstream ss;
+                ss << value << '#';
+                return pformat::format_with_args("literal",
+                                                 s,
+                                                 depth,
+                                                 loc,
+                                                 ss.str());
             }
         };
 

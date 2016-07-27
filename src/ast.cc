@@ -26,8 +26,14 @@ std::ostream &gg::ast::pformat::indent(std::ostream &s, std::size_t by) {
     return s;
 }
 
+std::ostream &gg::ast::pformat::format(const location &loc,
+                                       std::ostream &s,
+                                       std::size_t depth) {
+    return pformat::indent(s, depth) << "(location " << loc << ')';
+}
+
 std::ostream &node::format(std::ostream &s, std::size_t depth) const {
-    return pformat::indent(s, depth) << "(node)";
+    return pformat::format_with_args("node", s, depth, loc);
 }
 
 atom::atom(const location &loc) : node(loc) {}
@@ -36,14 +42,14 @@ variable::variable(const location &loc,
                    const std::string &name) : atom(loc), name(name) {}
 
 std::ostream &variable::format(std::ostream &s, std::size_t depth) const {
-    return pformat::indent(s, depth) << "(variable " << name << ')';
+    return pformat::format_with_args("variable", s, depth, loc, name);
 }
 
 constructor::constructor(const location &loc,
                          const std::string &name) : node(loc), name(name) {}
 
 std::ostream &constructor::format(std::ostream &s, std::size_t depth) const {
-    return pformat::indent(s, depth) << "(constructor " << name << ')';
+    return pformat::format_with_args("consttuctor", s, depth, loc, name);
 }
 
 primop::primop(const location &loc,
@@ -72,10 +78,12 @@ std::ostream &primop::format(std::ostream &s, std::size_t depth) const {
         {primopcode::NEGATE, "~-#"},
     };
     auto search = lookup.find(opcode);
-    return pformat::indent(s, depth)
-        << "(primop: "
-        << ((search == lookup.end()) ? "'unknown"s : search->second)
-        << ')';
+    return pformat::format_with_args("primop",
+                            s,
+                            depth,
+                            loc,
+                            search == lookup.end() ?
+                            "'unknown"s : search->second);
 }
 
 alternative::alternative(const location &loc,
@@ -87,8 +95,7 @@ default_alt::default_alt(const location &loc,
     : alternative(loc, body) {}
 
 std::ostream &default_alt::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(default_alt\n";
-    return body->format(s, depth + 1) << ')';
+    return pformat::format_with_args("default_alt", s, depth, loc, body);
 }
 
 
@@ -100,9 +107,7 @@ binding_alt::binding_alt(const location &loc,
     : alternative(loc, body), var(var) {}
 
 std::ostream &binding_alt::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(binding_alt\n";
-    var->format(s, depth + 1) << '\n';
-    return body->format(s, depth + 1) << ')';
+    return pformat::format_with_args("binding_alt", s, depth, loc, var, body);
 }
 
 defchildren(binding_alt, var, body)
@@ -114,10 +119,13 @@ algebraic_alt::algebraic_alt(const location &loc,
     : alternative(loc, body), con(con), vars(vars) {}
 
 std::ostream &algebraic_alt::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(algebraic_alt\n";
-    con->format(s, depth + 1) << '\n';
-    vars->format(s, depth + 1) << '\n';
-    return body->format(s, depth + 1) << ')';
+    return pformat::format_with_args("algebraic_alt",
+                                     s,
+                                     depth,
+                                     loc,
+                                     con,
+                                     vars,
+                                     body);
 }
 
 defchildren(algebraic_alt, con, vars, body)
@@ -128,9 +136,7 @@ prim_alt::prim_alt(const location &loc,
     : alternative(loc, body), lit(lit) {}
 
 std::ostream &prim_alt::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(prim_alt\n";
-    lit->format(s, depth + 1) << '\n';
-    return body->format(s, depth + 1) << ')';
+    return pformat::format_with_args("prim_alt", s, depth, loc, lit, body);
 }
 
 defchildren(prim_alt, lit, body)
@@ -145,11 +151,14 @@ lambda::lambda(const location &loc,
 defchildren(lambda, freevars, args, body)
 
 std::ostream &lambda::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(lambda\n";
-    freevars->format(s, depth + 1) << '\n';
-    pformat::indent(s, depth + 1) << '#' << ((update) ? 't' : 'f') << '\n';
-    args->format(s, depth + 1) << '\n';
-    return body->format(s, depth + 2) << ")";
+    return pformat::format_with_args("lambda",
+                            s,
+                            depth,
+                            loc,
+                            freevars,
+                            update ? "#t" : "#f",
+                            args,
+                            body);
 }
 
 binding::binding(const location &loc,
@@ -158,9 +167,7 @@ binding::binding(const location &loc,
     : node(loc), lhs(lhs), rhs(rhs) {}
 
 std::ostream &binding::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(binding\n";
-    lhs->format(s, depth + 1) << '\n';
-    return rhs->format(s, depth + 1) << ')';
+    return pformat::format_with_args("binding", s, depth, loc, lhs, rhs);
 }
 
 defchildren(binding, lhs, rhs)
@@ -179,9 +186,7 @@ local_definition::local_definition(const location &loc,
 
 std::ostream &local_definition::format(std::ostream &s,
                                        std::size_t depth) const {
-    pformat::indent(s, depth) << "(local_definition\n";
-    bindings->format(s, depth + 1) << '\n';
-    return body->format(s, depth + 1) << ')';
+    return pformat::format_with_args("local_definition", s, depth, loc, bindings, body);
 }
 
 local_recursion::local_recursion(const location &loc,
@@ -191,9 +196,7 @@ local_recursion::local_recursion(const location &loc,
 
 std::ostream &local_recursion::format(std::ostream &s,
                                        std::size_t depth) const {
-    pformat::indent(s, depth) << "(local_recursion\n";
-    bindings->format(s, depth + 1) << '\n';
-    return body->format(s, depth + 1) << ')';
+    return pformat::format_with_args("local_recursion", s, depth, loc, bindings, body);
 }
 
 case_::case_(const location &loc,
@@ -203,9 +206,7 @@ case_::case_(const location &loc,
 
 
 std::ostream &case_::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(case_\n";
-    scrutinee->format(s, depth + 1) << '\n';
-    return alts->format(s, depth + 1) << ')';
+    return pformat::format_with_args("case_", s, depth, loc, scrutinee, alts);
 }
 
 defchildren(case_, scrutinee, alts)
@@ -216,9 +217,7 @@ construct::construct(const location &loc,
     : expr(loc), con(con), args(args) {}
 
 std::ostream &construct::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(construct\n";
-    con->format(s, depth + 1) << '\n';
-    return args->format(s, depth + 1) << ')';
+    return pformat::format_with_args("construct", s, depth, loc, con, args);
 }
 
 defchildren(construct, con, args)
@@ -230,9 +229,7 @@ apply::apply(const location &loc,
 
 
 std::ostream &apply::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(apply\n";
-    var->format(s, depth + 1) << '\n';
-    return args->format(s, depth + 1) << ')';
+    return pformat::format_with_args("apply", s, depth, loc, var, args);
 }
 
 defchildren(apply, var, args)
@@ -243,9 +240,7 @@ prim_apply::prim_apply(const location &loc,
     : expr(loc), op(op), args(args) {}
 
 std::ostream &prim_apply::format(std::ostream &s, std::size_t depth) const {
-    pformat::indent(s, depth) << "(prim_apply\n";
-    op->format(s, depth + 1) << '\n';
-    return args->format(s, depth + 1) << ')';
+    return pformat::format_with_args("prim_apply", s, depth, loc, op, args);
 }
 
 defchildren(prim_apply, op, args)
@@ -255,7 +250,7 @@ lit_expr::lit_expr(const location &loc,
     : expr(loc), lit(lit) {}
 
 std::ostream &lit_expr::format(std::ostream &s, std::size_t depth) const {
-    return lit->format(pformat::indent(s, depth) << "(lit_expr ") << ')';
+    return pformat::format_with_args("lit_expr", s, depth, loc, lit);
 }
 
 defchildren(lit_expr, lit)
