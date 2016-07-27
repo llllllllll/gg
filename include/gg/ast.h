@@ -54,25 +54,14 @@ namespace gg {
 
             virtual std::ostream &format(std::ostream &s,
                                          std::size_t depth = 0) {
-                pformat::indent(s, depth) << "<sequence:";
+                pformat::indent(s, depth) << "(sequence";
                 if (elems.empty()) {
-                    return s << " <empty>>";
+                    return s << ')';
                 }
-
-                s << '\n';
-
-                elems[0]->format(s, depth + 2);
-
-                if (elems.size() == 1) {
-                    return s << '>';
+                for (const auto &elem : elems) {
+                    elem->format(s << '\n', depth + 1);
                 }
-                s << ',';
-
-                std::size_t n = 1;
-                for (; n < elems.size() - 1; ++n) {
-                    elems[n]->format(s << '\n', depth + 2) << ',';
-                }
-                return elems[n]->format(s << '\n', depth + 2) << '>';
+                return s << ')';
             }
 
             virtual std::vector<std::shared_ptr<node>> children() {
@@ -160,7 +149,7 @@ namespace gg {
             virtual std::ostream &format(std::ostream &s,
                                          std::size_t depth = 0) const {
                 return pformat::indent(s, depth)
-                    << "<literal: " << value << "#>";
+                    << "(literal: " << value << "#)";
             }
         };
 
