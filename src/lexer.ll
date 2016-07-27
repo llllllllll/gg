@@ -1,9 +1,11 @@
 %{ /* -*- C++ -*- */
+#include <sstream>
 #include <string>
 #include <stdexcept>
 
 #include "gg/ast.h"
 #include "gg/lexer.h"
+#include "gg/parse.h"
 
 using namespace std::literals;
 %}
@@ -94,8 +96,16 @@ primop    ("+"|"-"|"*"|"/"|"%"|"**"|"<<"|">>"|"|"|"&"|"^"|"<"|"<="|"=="|"/="|">=
         return gg::parser::make_INTEGER_LIT(l, loc);
     }
     catch (std::exception &e) {
-        std::cout << "bad int: " << yytext << " at: " << loc;
+        std::stringstream ss;
+        ss << "bad int: " << yytext << ": out of bounds for 64bit integer";
+        throw gg::ast::bad_parse(ss.str(), loc);
     }
+}
+
+"-"?{digit}+ {
+    std::stringstream ss;
+    ss << "bad literal: " << yytext << ": primitives must end in a '#'";
+    throw gg::ast::bad_parse(ss.str(), loc);
 }
 
 "{" {
@@ -118,14 +128,16 @@ primop    ("+"|"-"|"*"|"/"|"%"|"**"|"<<"|">>"|"|"|"&"|"^"|"<"|"<="|"=="|"/="|">=
     auto maybe_opcode = primopcode_from_s(yytext);
     if (maybe_opcode) {
         return gg::parser::make_PRIMOP(*maybe_opcode, loc);
-    } else {
-        std::cout << "bad primop: " << yytext << "\n";
     }
+    std::stringstream ss;
+    ss << "unknown primop: " << yytext;
+    throw gg::ast::bad_parse(ss.str(), loc);
 }
 
 . {
-    yyout << "invalid char: '" << yytext << "' at: " << loc << '\n';
-    return gg::parser::make_END(loc);
+    std::stringstream ss;
+    ss << "invalid character: '" << yytext << '\'';
+    throw gg::ast::bad_parse(ss.str(), loc);
 }
 
 <<EOF>> {

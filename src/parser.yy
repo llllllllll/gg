@@ -8,6 +8,8 @@
 %define api.value.type variant
 %define parse.assert
 %code requires {
+#include <sstream>
+
 #include "gg/ast.h"
 
 using namespace gg::ast;
@@ -26,6 +28,7 @@ namespace gg {
 %define parse.error verbose
 %code {
 #include "gg/lexer.h"
+#include "gg/parse.h"
 
 // use the lex method of the lexer argument
 #define yylex lex.yylex
@@ -164,6 +167,8 @@ atomlist : "{" atomlistbody "}" { $$ = $2; }
          ;
 
 %%
-void gg::parser::error(const location_type &l, const std::string &m) {
-    lex.yyout << "parse error: "<< m << " at: " << l;
+void gg::parser::error(const location_type &loc, const std::string &msg) {
+    std::stringstream ss;
+    ss << "parse error: " << msg;
+    throw bad_parse(ss.str(), loc);
 }
