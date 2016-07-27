@@ -8,7 +8,7 @@ int main() {
         auto result = gg::ast::parse();
         result->format(std::cout) << '\n';
     }
-    catch(const bad_parse &e) {
+    catch(const gg::ast::bad_parse &e) {
         std::cerr << e.what() << '\n';
     }
     return 0;
