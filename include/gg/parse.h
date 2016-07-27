@@ -8,6 +8,13 @@
 
 namespace gg {
     namespace ast {
+        /**
+           Parse an input stream into an ast.
+
+           @param in         The input stream to parse
+           @throws bad_parse if the input does not form a valid program.
+           @return           A shared pointer to the root of the ast.
+        */
         std::shared_ptr<sequence<binding>> parse(std::istream &in = std::cin);
 
         /**

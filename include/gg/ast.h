@@ -27,6 +27,9 @@ namespace gg {
 
             virtual std::vector<std::shared_ptr<node>> children();
         protected:
+            /**
+               @param loc  The location of this node.
+            */
             node(const location &loc);
         };
 
@@ -46,7 +49,7 @@ namespace gg {
 
                @param loc   The location to format.
                @param s     The stream to format to.
-               @param depth The depth of the node to format.
+               @param depth The depth of the location to format.
                @return s    The stream to format to.
             */
             std::ostream &format(const location &loc,
@@ -54,6 +57,12 @@ namespace gg {
                                  std::size_t depth = 0);
 
             namespace {
+                /**
+                   Helper struct for defining the partial template
+                   specializations for the generic `format` handler.
+
+                   This struct handles non `std::shared_ptr<node>` cases.
+                */
                 template<typename T>
                 struct format_struct {
                     static inline std::ostream &f(const T &a,
@@ -63,6 +72,12 @@ namespace gg {
                     }
                 };
 
+                /**
+                   Helper struct for defining the partial template
+                   specializations for the generic `format` handler.
+
+                   This struct handles `std::shared_ptr<node>` cases.
+                */
                 template<typename T>
                 struct format_struct<std::shared_ptr<T>> {
                     static std::enable_if_t<std::is_base_of<node, T>::value,
@@ -75,6 +90,18 @@ namespace gg {
                 };
             }
 
+            /**
+               Standard formatting for arbirary  objects.
+
+               If the object is a `std::shared_ptr` to a subclass of `node`
+               then this will call the `format` method, otherwise this will
+               just write the object to the stream.
+
+               @param loc   The object to format.
+               @param s     The stream to format to.
+               @param depth The depth of the object to format.
+               @return s    The stream to format to.
+            */
             template<typename T>
             std::ostream &format(const T &a,
                                  std::ostream &s,
@@ -100,6 +127,16 @@ namespace gg {
                 }
             }
 
+            /**
+               Implementation for the format method of many `node`s.
+
+               @param name  The name of the node type.
+               @param s     The stream to format to.
+               @param depth The depth of the node to format.
+               @param loc   The location of the node.
+               @param args  The variadic arguments to format on a newline.
+               @return s    The stream to format to.
+            */
             template<typename... Args>
             std::ostream &format_with_args(const std::string &name,
                                            std::ostream &s,
@@ -163,6 +200,10 @@ namespace gg {
         public:
             std::string name;
 
+            /**
+               @param loc  The location of the node.
+               @param name The name of this variable.
+            */
             variable(const location &loc, const std::string &name);
 
             virtual ~variable() = default;
@@ -182,6 +223,10 @@ namespace gg {
         public:
             std::string name;
 
+            /**
+               @param loc  The location of the node.
+               @param name The name of this constructor.
+            */
             constructor(const location &loc, const std::string &name);
 
             virtual ~constructor() = default;
@@ -210,6 +255,10 @@ namespace gg {
 
             typedef T type;
 
+            /**
+               @param loc   The location of this node.
+               @param value The literal value.
+            */
             literal_impl(const location &loc, const T &value)
                 : literal(loc), value(value) {}
 
@@ -275,9 +324,8 @@ namespace gg {
 
             primopcode opcode;
             /**
-               Construct from a primitive opcode.
-
-               @param op The opcode for this operation.
+               @param loc The location of this node.
+               @param op  The opcode for this operation.
             */
             primop(const location &loc, primopcode opcode);
 
@@ -319,6 +367,7 @@ namespace gg {
             virtual ~alternative() = default;
         protected:
             /**
+               @param loc  The location of this node.
                @param body The body of the case, or the part after `'->`.
             */
             alternative(const location &loc, const std::shared_ptr<expr> &body);
@@ -331,6 +380,10 @@ namespace gg {
         */
         class default_alt : public alternative {
         public:
+            /**
+               @param loc  The location of this node.
+               @param body The body of the case, or the part after `'->`.
+            */
             default_alt(const location &loc, const std::shared_ptr<expr> &body);
 
             virtual ~default_alt() = default;
@@ -349,8 +402,9 @@ namespace gg {
             std::shared_ptr<variable> var;
 
             /**
-               @param var  The variable being bound to the scrutinee.
-               @param body The body of the alternative.
+               @param loc  The location of this node.
+               @param var  The name to bind the value of the scrutinee to.
+               @param body The body of the case, or the part after `'->`.
             */
             binding_alt(const location &loc,
                         const std::shared_ptr<variable> &var,
@@ -373,9 +427,10 @@ namespace gg {
             std::shared_ptr<sequence<variable>> vars;
 
             /**
-               @param con  The constructor name.
-               @param vars The variables to bind.
-               @param body The body of the alternative.
+               @param loc  The location of this node.
+               @param con  The constructor to match
+               @param vars The variables to bind into scope.
+               @param body The body of the case, or the part after `'->`.
             */
             algebraic_alt(const location &loc,
                           const std::shared_ptr<constructor> &con,
@@ -398,8 +453,9 @@ namespace gg {
             std::shared_ptr<literal> lit;
 
             /**
-               @param lit  The literal to match against.
-               @param body The body of the alternative.
+               @param loc  The location of this node.
+               @param lit  The literal to match the scrutinee against.
+               @param body The body of the case, or the part after `'->`.
             */
             prim_alt(const location &loc,
                      const std::shared_ptr<literal> &lit,
@@ -424,6 +480,7 @@ namespace gg {
             std::shared_ptr<expr> body;
 
             /**
+               @param loc      The location of this node.
                @param freevars The names of the free variables of the lambda.
                @param update   Should this lambda update itself?
                @param args     The names of the arguments to this lambda.
@@ -451,6 +508,7 @@ namespace gg {
             std::shared_ptr<lambda> rhs;
 
             /**
+               @param loc The location of this node.
                @param lhs The name of the variable to bind.
                @param rhs The lambda to bind to this name.
             */
@@ -472,6 +530,7 @@ namespace gg {
         class local_bindings : public expr {
         protected:
             /**
+               @param loc      The location of this node.
                @param bindings The bindings to make available to `body`.
                @param body     The expression to evaluate with the given scope.
             */
@@ -492,6 +551,11 @@ namespace gg {
         */
         class local_definition : public local_bindings {
         public:
+            /**
+               @param loc      The location of this node.
+               @param bindings The bindings to make available to `body`.
+               @param body     The expression to evaluate with the given scope.
+            */
             local_definition(const location &loc,
                              const std::shared_ptr<sequence<binding>> &bindings,
                              const std::shared_ptr<expr> &body);
@@ -508,6 +572,11 @@ namespace gg {
         */
         class local_recursion : public local_bindings {
         public:
+            /**
+               @param loc      The location of this node.
+               @param bindings The bindings to make available to `body`.
+               @param body     The expression to evaluate with the given scope.
+            */
             local_recursion(const location &loc,
                             const std::shared_ptr<sequence<binding>> &bindings,
                             const std::shared_ptr<expr> &body);
@@ -528,6 +597,7 @@ namespace gg {
             std::shared_ptr<sequence<alternative>> alts;
 
             /**
+               @param loc       The location of this node.
                @param scrutinee The expression to evaluate to whnf.
                @param alts      The alternatives to execute based on the value
                                 of `scrutinee`.
@@ -553,6 +623,7 @@ namespace gg {
             std::shared_ptr<sequence<atom>> args;
 
             /**
+               @param loc  The location of this node.
                @param con  The constructor name.
                @param args The arguments to pass to the constructor.
             */
@@ -577,6 +648,7 @@ namespace gg {
             std::shared_ptr<sequence<atom>> args;
 
             /**
+               @param loc  The location of this node.
                @param var  The name of the function.
                @param args The arguments to apply to `var`.
             */
@@ -601,6 +673,7 @@ namespace gg {
             std::shared_ptr<sequence<atom>> args;
 
             /**
+               @param loc  The location of this node.
                @param op   The primitive operation to apply.
                @param args The arguments to apply to `op`.
             */
@@ -624,6 +697,7 @@ namespace gg {
             std::shared_ptr<literal> lit;
 
             /**
+               @param loc The location of this node.
                @param lit The literal value of the expression.
             */
             lit_expr(const location &loc, const std::shared_ptr<literal> &lit);
