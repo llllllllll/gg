@@ -125,7 +125,7 @@ primop    ("+"|"-"|"*"|"/"|"%"|"**"|"<<"|">>"|"|"|"&"|"^"|"<"|"<="|"=="|"/="|">=
 }
 
 {primop}"#" {
-    auto maybe_opcode = primopcode_from_s(yytext);
+    auto maybe_opcode = gg::ast::primopcode_from_s(yytext);
     if (maybe_opcode) {
         return gg::parser::make_PRIMOP(*maybe_opcode, loc);
     }
