@@ -9,14 +9,14 @@
 #include <FlexLexer.h>
 
 namespace gg {
-    class lexer : public yyFlexLexer {
-    private:
-        gg::parser::location_type loc;
+class lexer : public yyFlexLexer {
+private:
+    gg::parser::location_type loc;
 
-    public:
-        using yyFlexLexer::yyFlexLexer;
+public:
+    using yyFlexLexer::yyFlexLexer;
 
-        using yyFlexLexer::yylex;
-        virtual gg::parser::symbol_type yylex(std::nullptr_t);
-    };
+    using yyFlexLexer::yylex;
+    virtual gg::parser::symbol_type yylex(std::nullptr_t);
+};
 }

@@ -32,13 +32,13 @@ namespace gg {
 #define yylex lex.yylex
 
 namespace {
-    template<typename T>
-    auto make_shared_seq(const gg::parser::location_type &loc,
-                         const std::initializer_list<std::shared_ptr<T>> &es) {
-        return std::make_shared<gg::ast::sequence<T>>(
-            loc,
-            std::vector<std::shared_ptr<T>>(es));
-    }
+template<typename T>
+auto make_shared_seq(const gg::parser::location_type &loc,
+                     const std::initializer_list<std::shared_ptr<T>> &es) {
+    return std::make_shared<gg::ast::sequence<T>>(
+        loc,
+        std::vector<std::shared_ptr<T>>(es));
+}
 }
 }
 %define api.token.prefix {TOK_}
@@ -144,7 +144,7 @@ defaultalt : variable "->" expr "\n" { $$ = std::make_shared<gg::ast::binding_al
            | "default" "->" expr "\n" { $$ = std::make_shared<gg::ast::default_alt>(@$, $3); }
            ;
 
-literal : "int" { $$ = std::make_shared<gg::ast::literal_impl<int64_t>>(@$, $1); }
+literal : "int" { $$ = std::make_shared<gg::ast::literal>(@$, $1); }
         ;
 
 variablelistelem : variable { $$ = $1; }
