@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 namespace gg {
+namespace detail {
 template<typename K>
 concept bool hashable = requires(K k) {
     { std::hash<K>{}(k) };
@@ -19,6 +20,8 @@ concept bool equalitycomparable = requires(K k, K l) {
 
 template<typename K>
 concept bool keytype = equalitycomparable<K> && hashable<K>;
+
+}
 
 struct bad_name_add : public std::exception {
 private:
@@ -52,8 +55,8 @@ public:
     }
 };
 
-template<keytype K, typename V>
-struct scope : public std::enable_shared_from_this<scope<K, V>> {
+template<detail::keytype K, typename V>
+struct scoped_map : public std::enable_shared_from_this<scoped_map<K, V>> {
 private:
     using map_type = std::unordered_map<K, V>;
     map_type globals;
@@ -71,8 +74,17 @@ public:
     using pointer = typename std::allocator_traits<allocator_type>::pointer;
     using const_pointer = typename std::allocator_traits<allocator_type>::const_pointer;
 
-    scope(const map_type& globals) : globals(globals) {}
-    scope(map_type&& globals) : globals(std::move(globals)) {}
+    scoped_map() = default;
+    scoped_map(const map_type& globals) : globals(globals) {}
+    scoped_map(map_type&& globals) : globals(std::move(globals)) {}
+
+    void new_global(const key_type& key, const mapped_type& value) {
+        auto e = globals.find(key);
+        if (e == globals.cend()) {
+            throw bad_name_add(key);
+        }
+        globals.emplace(key, value);
+    }
 
     void new_local(const key_type& key, const mapped_type& value) {
         auto& current_locals = locals.back();

@@ -9,8 +9,6 @@
 #include <variant>
 #include <vector>
 
-#include <libgccjit++.h>
-
 #include "gg/bison/location.h"
 
 namespace gg {
@@ -180,6 +178,22 @@ public:
         std::vector<std::shared_ptr<node>> ret(elems.cbegin(),
                                                elems.cend());
         return ret;
+    }
+
+    auto begin() {
+        return elems.begin();
+    }
+
+    auto cbegin() {
+        return elems.cbegin();
+    }
+
+    auto end() {
+        return elems.end();
+    }
+
+    auto cend() {
+        return elems.end();
     }
 };
 

@@ -1,6 +1,6 @@
 CC := g++
-CFLAGS := -std=gnu++17 -Wall -Wextra -O3 -g -fno-strict-aliasing
-LDFLAGS :=
+CFLAGS := -std=gnu++17 -Wall -Wextra -O3 -g -fno-strict-aliasing -fconcepts
+LDFLAGS := -lgccjit
 
 INCLUDE-DIRS := include/
 INCLUDE := $(foreach d,$(INCLUDE-DIRS), -I$d)
