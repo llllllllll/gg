@@ -13,3 +13,5 @@ include/gg/bison/*
 src/parser.cc
 src/lexer.cc
 /gg
+
+TAGS
